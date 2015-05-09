@@ -1,2 +1,2 @@
 include ':cobalt'
-include ':hello'
+include ':HelloWorld'

@@ -1,4 +1,4 @@
-package com.example.hello.fragments;
+package com.cobaltians.helloworld.fragments;
 
 import fr.cobaltians.cobalt.fragments.CobaltFragment;
 

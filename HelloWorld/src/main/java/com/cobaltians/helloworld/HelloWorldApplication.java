@@ -1,4 +1,4 @@
-package com.example.hello;
+package com.cobaltians.helloworld;
 
 import android.app.Application;
 import fr.cobaltians.cobalt.Cobalt;
@@ -6,7 +6,7 @@ import fr.cobaltians.cobalt.Cobalt;
 /**
  * Created by sebastien on 29/07/2014.
  */
-public class HelloApplication extends Application {
+public class HelloWorldApplication extends Application {
 
     @Override
     public void onCreate() {

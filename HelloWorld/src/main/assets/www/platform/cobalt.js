@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 var cobalt={
-    version : '0.4.0',
-    events:{}, //objects of events defined by the user
+    version : '0.3',
+    userEvents:{}, //objects of events defined by the user
 	debug:false,
 	debugInBrowser:false,
 	debugInDiv:false,
@@ -45,7 +45,7 @@ var cobalt={
                 this.createLogDiv();
             }
 		    if (options.events){
-		        this.events=options.events
+		        this.userEvents=options.events
 	        }
             cobalt.storage.enable();
 
@@ -73,12 +73,12 @@ var cobalt={
     },
 	addEventListener:function(eventName, handlerFunction){
 		if (typeof eventName === "string" && typeof handlerFunction === "function"){
-			this.events[eventName] = handlerFunction;
+			this.userEvents[eventName] = handlerFunction;
 		}
 	},
 	removeEventListener:function(eventName){
-		if (typeof eventName === "string" && this.events[eventName] ){
-			this.events[eventName] = undefined;
+		if (typeof eventName === "string" && this.userEvents[eventName] ){
+			this.userEvents[eventName] = undefined;
 		}
 	},
 	/*	cobalt.log(stuff,...)
@@ -395,8 +395,8 @@ var cobalt={
     defaultBehaviors:{
 		handleEvent:function(json){
 			cobalt.log("received event", json.event)
-		    if (cobalt.events && typeof cobalt.events[json.event] === "function"){
-				cobalt.events[json.event](json.data,json.callback);
+		    if (cobalt.userEvents && typeof cobalt.userEvents[json.event] === "function"){
+				cobalt.userEvents[json.event](json.data,json.callback);
 		    }else{
                 cobalt.adapter.handleUnknown(json)
             }
@@ -802,131 +802,111 @@ var cobalt={
         }
     }
 
-};cobalt.android_adapter={
-	//
-	//ANDROID ADAPTER
-	//
-	init:function(){
-		cobalt.platform="Android";
-	},
-	// handle events sent by native side
-    handleEvent:function(json){
-		cobalt.log("received event", json.event)
-        if (cobalt.events && typeof cobalt.events[json.event] === "function"){
-			cobalt.events[json.event](json.data,json.callback);
-	    }else{
-	        switch (json.event){
-		        case "onBackButtonPressed":
-				    cobalt.log('sending OK for a native back')
-			        cobalt.sendCallback(json.callback,{value : true});
-			    break;
-                default :
-                    cobalt.adapter.handleUnknown(json);
-                break;
-	        }
+};cobalt.ios_adapter={
+    //
+    //IOS ADAPTER
+    //
+    pipeline:[], //array of sends waiting to go to native
+    pipelineRunning:false,//bool to know if new sends should go to pipe or go to native
+
+    isBelowIOS7:false,
+
+    init:function(){
+        cobalt.platform="iOs";
+
+        if (typeof cobaltViewController === "undefined"){
+            cobalt.divLog('Warning : cobaltViewController undefined. We probably are below ios7.')
+            cobalt.adapter.isBelowIOS7 = true;
+        }else{
+            cobalt.adapter.isBelowIOS7 = false;
+        }
+    },
+    // handle callbacks sent by native side
+    handleCallback:function(json){
+        if (cobalt.adapter.isBelowIOS7){
+            cobalt.adapter.ios6.handleCallback(json);
+        }else{
+            cobalt.defaultBehaviors.handleCallback(json);
         }
     },
     //send native stuff
     send:function(obj){
-        if (obj && !cobalt.debugInBrowser){
-        	cobalt.divLog('sending',obj)
-	        try{	        	
-		        Android.onCobaltMessage(JSON.stringify(obj));
-	        }catch (e){
-		        cobalt.log('ERROR : cant connect to native')
-	        }
+        if (cobalt.adapter.isBelowIOS7){
+            cobalt.adapter.ios6.send(obj);
+        }else{
+            if (obj && !cobalt.debugInBrowser){
+                cobalt.divLog('sending',obj)
+                try{
+                    cobaltViewController.onCobaltMessage(JSON.stringify(obj));
+                }catch (e){
+                    cobalt.log('ERROR : cant connect to native.' + e)
+                }
 
+            }
         }
     },
-	//modal stuffs. really basic on ios, more complex on android.
-	navigateToModal:function(page, controller){
-		cobalt.send({ "type":"navigation", "action":"modal", data : { page :page, controller: controller }}, 'cobalt.adapter.storeModalInformations');
-	},
-	dismissFromModal:function(){
-        var dismissInformations= cobalt.storage.getItem("dismissInformations","json");
-        if (dismissInformations && dismissInformations.page && dismissInformations.controller){
-            cobalt.send({ "type":"navigation", "action":"dismiss", data : { page : dismissInformations.page, controller:dismissInformations.controller }});
-            cobalt.storage.removeItem("dismissInformations");
-        }else{
-            cobalt.log("WANRING : dismissInformations are not available in storage")
-        }
-
-	},
-	storeModalInformations:function(params){
-		cobalt.divLog("storing informations for the dismiss :", params)
-		cobalt.storage.setItem("dismissInformations",params, "json")
-
-	},
-	//localStorage stuff
-	initStorage:function(){
-		//on android, try to bind window.localStorage to Android LocalStorage
-		try{
-			window.localStorage=LocalStorage;
-		}catch(e){
-			cobalt.log("LocalStorage WARNING : can't find android class LocalStorage. switching to raw localStorage")
-		}
-		return cobalt.storage.enable();
-	},
     //datePicker stuff
     datePicker:{
         init:function(inputs){
-
-            cobalt.utils.each(inputs,function(){
+			cobalt.utils.each(inputs, function(){
                 var input=this;
                 var id=cobalt.utils.attr(input, 'id');
 
-                cobalt.log('datePicker setted with value='+input.value)
-                cobalt.utils.attr(input, 'type','text');
-                cobalt.datePicker.enhanceFieldValue.apply(input);
-
-                input.addEventListener('focus',function(){
-                    cobalt.log('show formPicker date for date #',id)
-                    input.blur();
-                    var previousDate = cobalt.storage.getItem('CobaltDatePickerValue_'+id,'json')
-                    if (!previousDate){
-                        var d=new Date();
-                        previousDate={
-                            year: d.getFullYear(),
-                            day : d.getDate(),
-                            month : d.getMonth()+1
-                        }
-                    }
-                    cobalt.send({ type : "ui", control : "picker", data : {
-                            type: "date", date : previousDate,
-                            texts: cobalt.datePicker.texts
-                        }}, function(newDate){
-                            if (newDate && newDate.year){
-                                input.value= newDate.year+'-'+newDate.month+'-'+newDate.day;
-                                cobalt.log('setting storage date ', newDate);
-                                cobalt.storage.setItem('CobaltDatePickerValue_'+id,newDate,'json')
-                                cobalt.datePicker.enhanceFieldValue.apply(input);
-                            }else{
-                                cobalt.log('removing storage date');
-                                input.value="";
-                                cobalt.storage.removeItem('CobaltDatePickerValue_'+id)
-                            }
-                    });
-                    return false;
-
-                },false);
-
+                var placeholder=cobalt.utils.attr(input, 'placeholder');
+                if (placeholder){
+                    cobalt.utils.append(document.head, '<style> #'+id+':before{ content:"'+placeholder+'"; '+cobalt.datePicker.placeholderStyles+' } #'+id+':focus:before,#'+id+'.not_empty:before{ content:none }</style>')
+                }
+				
+                input.addEventListener('change',cobalt.datePicker.updateFromValue, false);
+				input.addEventListener('keyup',cobalt.datePicker.updateFromValue, false);
             });
-        },
-        val:function(input){
-            var date = cobalt.storage.getItem('CobaltDatePickerValue_'+cobalt.utils.attr(input, 'id'), 'json')
-            if (date){
-                var str_date=cobalt.datePicker.stringifyDate(date)
-                cobalt.log('returning storage date ', str_date);
-                return str_date;
-            }
-            return undefined;
         }
     },
 
+    ios6:{
+        // iOS < 7 is using an old-school url change hack to send messages from web to native.
+        // Because of the url change, only one message can be sent to the native at a time.
+        // The acquitement sent by native once each event has been received ensure this behavior.
+        // Messages are queued and sent one after the other as soon as the acq is received.
+        handleCallback:function(json){
+            switch(json.callback){
+                case "callbackSimpleAcquitment":
+                    cobalt.divLog("received message acquitement")
+                    cobalt.adapter.ios6.unpipe();
+                    if (cobalt.adapter.pipeline.length==0){
+                        cobalt.divLog('end of ios message stack')
+                        cobalt.adapter.pipelineRunning=false;
+                    }
+                    break;
+                default:
+                    cobalt.tryToCallCallback(json)
+                    break;
+            }
+        },
+        send:function(obj){
+            cobalt.divLog('adding to ios message stack', obj)
+            cobalt.adapter.pipeline.push(obj);
+            if (!cobalt.adapter.pipelineRunning){
+                cobalt.adapter.ios6.unpipe()
+            }
+        },
+        //unpipe elements when receiving a ACK from ios.
+        unpipe:function(){
+            cobalt.adapter.pipelineRunning=true;
+            var objToSend=cobalt.adapter.pipeline.shift();
+            if (objToSend && !cobalt.debugInBrowser){
+                cobalt.divLog('sending',objToSend)
+                document.location.href=encodeURIComponent("cob@l7#k&y"+JSON.stringify(objToSend));
+            }
+        }
+    },
 
+    //default behaviours
+    handleEvent : cobalt.defaultBehaviors.handleEvent,
+    handleUnknown : cobalt.defaultBehaviors.handleUnknown,
+    navigateToModal : cobalt.defaultBehaviors.navigateToModal,
+    dismissFromModal : cobalt.defaultBehaviors.dismissFromModal,
+    initStorage : cobalt.defaultBehaviors.initStorage
 
-	//default behaviours
-    handleCallback : cobalt.defaultBehaviors.handleCallback,
-    handleUnknown : cobalt.defaultBehaviors.handleUnknown
 };
-cobalt.adapter=cobalt.android_adapter;
+cobalt.adapter=cobalt.ios_adapter;

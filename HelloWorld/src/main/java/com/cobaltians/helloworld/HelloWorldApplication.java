@@ -13,5 +13,6 @@ public class HelloWorldApplication extends Application {
         super.onCreate();
 
         Cobalt.getInstance(this).setResourcePath("www/common/");
+        Cobalt.getInstance(this).setPackageName(getPackageName() + ".activities.");
     }
 }

@@ -1,0 +1,5 @@
+[submodule "cobalt"]
+	path = cobalt
+	url = git://github.com/cobaltians/cobalt.git
+	branch = 0.4.1
+

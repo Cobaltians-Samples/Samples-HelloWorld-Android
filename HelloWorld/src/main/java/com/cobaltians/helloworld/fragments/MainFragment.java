@@ -1,6 +1,6 @@
 package com.cobaltians.helloworld.fragments;
 
-import fr.cobaltians.cobalt.fragments.CobaltFragment;
+import org.cobaltians.cobalt.fragments.CobaltFragment;
 
 import org.json.JSONObject;
 

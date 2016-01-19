@@ -1,7 +1,7 @@
 package com.cobaltians.helloworld;
 
 import android.app.Application;
-import fr.cobaltians.cobalt.Cobalt;
+import org.cobaltians.cobalt.Cobalt;
 
 /**
  * Created by sebastien on 29/07/2014.

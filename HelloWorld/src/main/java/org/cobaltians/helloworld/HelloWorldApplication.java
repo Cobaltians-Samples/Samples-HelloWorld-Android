@@ -1,4 +1,4 @@
-package com.cobaltians.helloworld;
+package org.cobaltians.helloworld;
 
 import android.app.Application;
 import org.cobaltians.cobalt.Cobalt;

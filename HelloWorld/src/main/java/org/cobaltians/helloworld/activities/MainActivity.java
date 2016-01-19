@@ -1,6 +1,6 @@
-package com.cobaltians.helloworld.activities;
+package org.cobaltians.helloworld.activities;
 
-import com.cobaltians.helloworld.fragments.MainFragment;
+import org.cobaltians.helloworld.fragments.MainFragment;
 
 import org.cobaltians.cobalt.Cobalt;
 import org.cobaltians.cobalt.activities.CobaltActivity;

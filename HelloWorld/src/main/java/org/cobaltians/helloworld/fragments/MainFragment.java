@@ -19,8 +19,9 @@ public class MainFragment extends CobaltFragment {
 	}
 
 	@Override
-	protected void onUnhandledMessage(JSONObject message) {
+	protected boolean onUnhandledMessage(JSONObject message) {
 		// TODO Auto-generated method stub
+		return false;
 	}
 
 	@Override

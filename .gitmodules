@@ -2,3 +2,7 @@
 	path = cobalt
 	url = git://github.com/cobaltians/Cobalt-Android.git
 	branch = 0.4.1
+[submodule "HelloWorld/src/main/assets/www"]
+	path = HelloWorld/src/main/assets/www
+	url = https://github.com/Cobaltians-Samples/Samples-HelloWorld-Web.git
+	branch = cobalt1.0

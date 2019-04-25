@@ -11,7 +11,5 @@ public class HelloWorldApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
-        Cobalt.getInstance(this).setResourcePath("www/common/");
     }
 }
